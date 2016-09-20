@@ -1,0 +1,12 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --with python2
+
+override_dh_auto_clean:
+	dh_clean
+	rm -rf *.egg-info
+	rm -rf build
+	#find tkp *.pyc -delete
+
+

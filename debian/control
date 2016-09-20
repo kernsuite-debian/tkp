@@ -1,0 +1,28 @@
+Source: tkp
+Section: python
+Priority: optional
+Maintainer: Debian Astro Team <debian-astro-maintainers@lists.alioth.debian.org>
+Uploaders: Gijs Molenaar <gijs@pythonic.nl>
+Build-Depends: debhelper (>= 9), python-all, dh-python
+Standards-Version: 3.9.8
+Homepage: https://github.com/transientskp/tkp
+X-Python-Version: 2.7
+
+Package: python-tkp
+Architecture: any
+Depends: ${python:Depends}, ${misc:Depends},
+ python-astropy,
+ python-colorlog,
+ python-numpy,
+ python-psycopg2,
+ python-casacore,
+ python-dateutil,
+ python-tz,
+ python-pywcs,
+ python-scipy,
+ python-sqlalchemy
+Description: A transients-discovery pipeline for astronomical image-based surveys
+ The LOFAR Transients Pipeline (or "TraP") is a Python and SQL based system for
+ detecting and responding to transient and variable sources in a stream of
+ astronomical images. It primarily targets LOFAR data, but is also applicable
+ to a range of other instruments.
