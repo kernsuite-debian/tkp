@@ -3,20 +3,22 @@ The SQLAlchemy model definition.
 
 revision history:
 
+ 40 - Move image data to seperate table for speed
+ 39 - Remove SQL insert functions, add dataset row to frequencyband table. Add image data.
  38 - add varmetric table
  37 - add forcedfits_count column to runningcatalog
  36 - switch to SQLAlchemy schema initialisation
 """
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index,\
-    Integer, SmallInteger, String, text, Sequence
+    Integer, SmallInteger, String, text, Sequence, LargeBinary
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION as Double
 
 
-SCHEMA_VERSION = 38
+SCHEMA_VERSION = 40
 
 Base = declarative_base()
 metadata = Base.metadata
@@ -27,7 +29,9 @@ class Assocskyrgn(Base):
 
     id = Column(Integer, primary_key=True)
     runcat_id = Column('runcat', ForeignKey('runningcatalog.id'), nullable=False, index=True)
-    runcat = relationship('Runningcatalog')
+    runcat = relationship('Runningcatalog',
+                          backref=backref('assocskyrgns',
+                                          cascade="all,delete"))
 
     skyrgn_id = Column('skyrgn', ForeignKey('skyregion.id'), nullable=False, index=True)
     skyrgn = relationship('Skyregion')
@@ -69,7 +73,8 @@ class Config(Base):
     id = Column(Integer, primary_key=True)
 
     dataset_id = Column('dataset', ForeignKey('dataset.id'), nullable=False)
-    dataset = relationship('Dataset')
+    dataset = relationship('Dataset',
+                           backref=backref('configs', cascade="all,delete"))
 
     section = Column(String(100))
     key = Column(String(100))
@@ -78,6 +83,7 @@ class Config(Base):
 
 
 seq_dataset = Sequence('seq_dataset')
+
 
 class Dataset(Base):
     __tablename__ = 'dataset'
@@ -110,7 +116,7 @@ class Extractedsource(Base):
     id = Column(Integer, primary_key=True)
 
     image_id = Column('image', ForeignKey('image.id'), nullable=False, index=True)
-    image = relationship('Image')
+    image = relationship('Image', backref=backref('extractedsources', cascade="all,delete"))
 
     ff_runcat_id = Column('ff_runcat', ForeignKey('runningcatalog.id'))
     ff_runcat = relationship('Runningcatalog',  primaryjoin='Extractedsource.ff_runcat_id == Runningcatalog.id')
@@ -160,6 +166,9 @@ class Frequencyband(Base):
 
     id = Column(Integer, seq_frequencyband, primary_key=True,
                 server_default=seq_frequencyband.next_value())
+    dataset_id = Column('dataset', Integer, ForeignKey('dataset.id'),
+                        nullable=False, index=True)
+    dataset = relationship('Dataset', backref=backref('frequencybands', cascade="all,delete"))
     freq_central = Column(Double)
     freq_low = Column(Double)
     freq_high = Column(Double)
@@ -175,13 +184,13 @@ class Image(Base):
                 server_default=seq_image.next_value())
 
     dataset_id = Column('dataset', Integer, ForeignKey('dataset.id'), nullable=False, index=True)
-    dataset = relationship('Dataset', backref=backref('images'))
+    dataset = relationship('Dataset', backref=backref('images', cascade="delete"))
 
     band_id = Column('band', ForeignKey('frequencyband.id'), nullable=False, index=True)
-    band = relationship('Frequencyband')
+    band = relationship('Frequencyband', cascade="delete")
 
     skyrgn_id = Column('skyrgn', Integer, ForeignKey('skyregion.id'), nullable=False, index=True)
-    skyrgn = relationship('Skyregion', backref=backref('images'))
+    skyrgn = relationship('Skyregion', backref=backref('images', cascade="delete"))
 
     tau = Column(Integer)
     stokes = Column(SmallInteger, nullable=False, server_default=text("1"))
@@ -205,6 +214,18 @@ class Image(Base):
     node = Column(SmallInteger, nullable=False, server_default=text("1"))
     nodes = Column(SmallInteger, nullable=False, server_default=text("1"))
 
+    data = relationship("ImageData", uselist=False, back_populates="image")
+
+
+class ImageData(Base):
+    __tablename__ = 'imagedata'
+
+    id = Column(Integer, primary_key=True)
+    image_id = Column('image', Integer, ForeignKey('image.id'), nullable=False, index=True)
+    image = relationship("Image", back_populates="data")
+    fits_header = Column(String)
+    fits_data = Column(LargeBinary)
+
 
 class Monitor(Base):
     __tablename__ = 'monitor'
@@ -227,7 +248,8 @@ class Newsource(Base):
     id = Column(Integer, primary_key=True)
 
     runcat_id = Column('runcat', ForeignKey('runningcatalog.id'), nullable=False, index=True)
-    runcat = relationship('Runningcatalog')
+    runcat = relationship('Runningcatalog', backref=backref("newsources",
+                                                            cascade="all,delete"))
 
     trigger_xtrsrc_id = Column('trigger_xtrsrc', ForeignKey('extractedsource.id'), nullable=False, index=True)
     trigger_xtrsrc = relationship('Extractedsource')
@@ -286,7 +308,9 @@ class Runningcatalog(Base):
     id = Column(Integer, primary_key=True)
 
     xtrsrc_id = Column('xtrsrc', ForeignKey('extractedsource.id'), nullable=False, unique=True)
-    xtrsrc = relationship('Extractedsource', primaryjoin='Runningcatalog.xtrsrc_id == Extractedsource.id')
+    xtrsrc = relationship('Extractedsource',
+                          primaryjoin='Runningcatalog.xtrsrc_id == Extractedsource.id',
+                          backref=backref('extractedsources', cascade="all,delete"))
 
     dataset_id = Column('dataset', ForeignKey('dataset.id'), nullable=False, index=True)
     dataset = relationship('Dataset')
@@ -314,7 +338,8 @@ class Runningcatalog(Base):
                                     secondary='assocxtrsource',
                                     backref='runningcatalogs')
 
-    varmetric = relationship("Varmetric", uselist=False, backref="runcat")
+    varmetric = relationship("Varmetric", uselist=False, backref="runcat",
+                             cascade="all,delete")
 
 
 class Varmetric(Base):
@@ -323,14 +348,14 @@ class Varmetric(Base):
     id = Column(Integer, primary_key=True)
 
     runcat_id = Column('runcat', ForeignKey('runningcatalog.id'),
-                       nullable=False, index=True)
+                       nullable=False, index=True, unique=True)
 
     v_int = Column(Double, index=True)
     eta_int = Column(Double)
 
     band_id = Column('band', ForeignKey('frequencyband.id'), nullable=False,
                      index=True)
-    band = relationship('Frequencyband')
+    band = relationship('Frequencyband', cascade="delete")
 
     newsource = Column(Integer)
     sigma_rms_max = Column(Double, index=True)
@@ -350,10 +375,12 @@ class RunningcatalogFlux(Base):
     id = Column(Integer, primary_key=True)
 
     runcat_id = Column('runcat', ForeignKey('runningcatalog.id'), nullable=False)
-    runcat = relationship('Runningcatalog')
+    runcat = relationship('Runningcatalog',
+                          backref=backref('runningcatalogfluxs',
+                                          cascade="all,delete"))
 
     band_id = Column('band', ForeignKey('frequencyband.id'), nullable=False, index=True)
-    band = relationship('Frequencyband')
+    band = relationship('Frequencyband', cascade="delete")
 
     stokes = Column(SmallInteger, nullable=False, server_default=text("1"))
     f_datapoints = Column(Integer, nullable=False)
@@ -378,7 +405,8 @@ class Skyregion(Base):
                 server_default=seq_skyregion.next_value())
 
     dataset_id = Column('dataset', ForeignKey('dataset.id'), nullable=False, index=True)
-    dataset = relationship('Dataset')
+    dataset = relationship('Dataset',
+                           backref=backref('skyregions',cascade="all,delete"))
 
     centre_ra = Column(Double, nullable=False)
     centre_decl = Column(Double, nullable=False)
@@ -403,7 +431,7 @@ class Temprunningcatalog(Base):
     dataset = relationship('Dataset')
 
     band_id = Column('band', ForeignKey('frequencyband.id'), nullable=False, index=True)
-    band = relationship('Frequencyband')
+    band = relationship('Frequencyband', cascade="delete")
 
     distance_arcsec = Column(Double, nullable=False)
     r = Column(Double, nullable=False)

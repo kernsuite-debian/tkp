@@ -1,5 +1,135 @@
 # Changelog
 -----------
+
+##4.0
+
+No changes since 4.0rc1
+
+##4.0 release candidate 1
+
+### RMS basd image quality check added for all images.
+
+A quality check of each image is now done based on either when ther the
+image data contains nans, the background  RMS of the image, rejected
+if the RMS is outside of the user set range in job_params.:
+
+    [persistence]
+    rms_est_max = 100            ; global maximum acceptable rms
+    rms_est_min = 0.0            ; global minimum acceptable rms
+
+or if after a number images, the image RMS is rms_est_sigma away from
+the mean RMS of the last number of images, where the number is set in
+job_params:
+
+    [persistence]
+    rms_est_history = 100        ; how many images used for calculating rms histogram
+
+[#512]: https://github.com/transientskp/tkp/issues/512
+
+### frequency band logic change
+
+the band determination logic has changed. Before all bands where split
+into 1 MHz intervals and associated as such. With this release  images
+are put in the same band if their bandwidths overlap.
+
+We added an option to limit the bandwidth used for band association
+([#492][]). Limiting the bandwidth for an image is done by
+setting `bandwidth_max` in *job_params.cfg* under the
+`persistence section`. E.g.::
+
+    [persistence]
+    bandwidth_max = 0.0
+
+Setting the value to 0.0 will use the bandwidth defined in the image
+headers, a non 0.0 value will override this value.
+
+[#492]: https://github.com/transientskp/tkp/issues/492
+
+
+### added streaming telescope support
+
+The internals of TraP have been rewritten to support streaming AARTFAAC
+data ([#483][]). There is now a new section in the job_params.cfg file
+with a mode setting. Setting this to batch will keep the old TraP
+behavior, but setting mode to stream will enable the new behavior.
+TraP will connect to a network port and process these images untill
+terminated.
+The hosts and ports where to connect to is controlled with the hosts
+and ports settings::
+
+    [pipeline]
+    mode = 'stream'
+    hosts = 'struis.science.uva.nl,struis.science.uva.nl'
+    ports = '6666,6667'
+
+The batch mode should mostly be unaffected, only the order of actions
+has changed. TraP will process the full dataset now in chunks grouped by
+timstamp. Tthe storing of images, quality checks and meta data
+extraction is now run together with the source extraction and assocation
+cycle, where before this was all done at the start of a TraP run.
+This makes it more similar to how we process streaming data and enabled
+other optimisations in the future.
+
+[#483]: https://github.com/transientskp/tkp/pull/483
+
+
+### Removal of MongoDB image store
+
+If you enable the ``copy_images`` setting in your pipeline.cfg file
+the images are now stored in the sql database ([#534][]). This makes it
+much easier to manage the files, for example delete them. Also the
+images load faster in banana. This makes setting up and configuring
+MongoDB obsolete. 
+
+
+[#534]: https://github.com/transientskp/tkp/pull/534
+
+
+### Add command line option to delete dataset
+
+It is now possible to delete a dataset  ([#533][])::
+
+
+    $ trap-manage.py deldataset 5 -y
+
+    dataset 5 has been deleted!
+
+
+[#533]: https://github.com/transientskp/tkp/pull/533
+
+
+### Make TraP more resilient against faulty data
+
+TraP often crashed on faulty image data. On popular request TraP will
+now try to continue, giving a warning. [#522][]
+
+[#522]: https://github.com/transientskp/tkp/issues/522
+
+
+### Various other changes and bugfixes
+
+* Fix Numpy 1.9+ compatibility [#509][])
+* TraP sourcefinder error on updated AARTFAAC images [#505][]
+* forced fits is not parallelised [#526][]
+* restructure logging, make less verbose. Also multiproc workers will
+  log to stdout.
+* fix multiprocess job cancelling problem (ctrl-c)
+
+[#509]: https://github.com/transientskp/tkp/issues/509
+[#505]: https://github.com/transientskp/tkp/issues/505
+[#526]: https://github.com/transientskp/tkp/issues/526
+
+
+### known issues
+
+* Streaming mode gives a harmless error [#536][]
+* Alembic upgrade is not working yet [#535][]
+
+
+[#535]: https://github.com/transientskp/tkp/issues/535
+[#536]: https://github.com/transientskp/tkp/issues/536
+
+
 ## R3.1.1 (2016-05-20)
 
 Adds a 'generic' (i.e. not telescope-specific) quality check for flat images,

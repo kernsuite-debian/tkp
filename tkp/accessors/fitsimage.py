@@ -48,8 +48,6 @@ class FitsImage(DataAccessor):
             hdu = hdulist[hdu_index]
         return hdu.header.copy()
 
-
-
     def read_data(self, hdu_index, plane):
         """
         Read and store data from our FITS file.
@@ -109,7 +107,7 @@ class FitsImage(DataAccessor):
     def calculate_phase_centre(self):
         x, y = self.data.shape
         centre_ra, centre_decl = self.wcs.p2s((x / 2, y / 2))
-        return centre_ra, centre_decl
+        return float(centre_ra), float(centre_decl)
 
 
 
@@ -125,9 +123,15 @@ class FitsImage(DataAccessor):
         freq_bw = None
         try:
             header = self.header
-            if header['TELESCOP'] == 'LOFAR':
+            if header['TELESCOP'] in ('LOFAR', 'AARTFAAC'):
                 freq_eff = header['RESTFRQ']
-                freq_bw = header['RESTBW']
+                if 'RESTBW' in header:
+                    freq_bw = header['RESTBW']
+
+                else:
+                    logger.warning("bandwidth header missing in image {},"
+                                   " setting to 1 MHz".format(self.url))
+                    freq_bw = 1e6
             else:
                 if header['ctype3'] in ('FREQ', 'VOPT'):
                     freq_eff = header['crval3']
@@ -139,7 +143,7 @@ class FitsImage(DataAccessor):
                     freq_eff = header['restfreq']
                     freq_bw = 0.0
         except KeyError:
-            msg = "Frequency not specified in FITS"
+            msg = "Frequency not specified in headers for {}".format(self.url)
             logger.error(msg)
             raise TypeError(msg)
 
@@ -198,7 +202,6 @@ class FitsImage(DataAccessor):
         return bmaj, bmin, bpa
 
 
-
     def parse_times(self):
         """Returns:
           - taustart_ts: tz naive (implicit UTC) datetime at start of observation.
@@ -216,7 +219,7 @@ class FitsImage(DataAccessor):
         try:
             end = dateutil.parser.parse(self.header['end_utc'])
         except KeyError:
-            msg = "End time not specified or unreadable"
+            msg = "End time not specified in {}, setting to start".format(self.url)
             logger.warning(msg)
             end = start
 

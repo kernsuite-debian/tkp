@@ -1,10 +1,9 @@
 import logging
-import tkp.accessors
 from tkp.accessors import sourcefinder_image_from_accessor
-import tkp.accessors
 from collections import namedtuple
 
 logger = logging.getLogger(__name__)
+
 
 #Short-lived struct for returning results from the source extraction routine:
 ExtractionResults = namedtuple('ExtractionResults',
@@ -13,12 +12,12 @@ ExtractionResults = namedtuple('ExtractionResults',
                                     'rms_max'])
 
 
-def extract_sources(image_path, extraction_params):
+def extract_sources(accessor, extraction_params):
     """
     Extract sources from an image.
 
     args:
-        image_path: path to file from which to extract sources.
+         images: a tuple of image DB object and accessor
         extraction_params: dictionary containing at least the detection and
             analysis threshold and the association radius, the last one a
             multiplication factor of the de Ruiter radius.
@@ -27,8 +26,8 @@ def extract_sources(image_path, extraction_params):
         min RMS value and max RMS value
     """
     logger.debug("Detecting sources in image %s at detection threshold %s",
-                 image_path, extraction_params['detection_threshold'])
-    accessor = tkp.accessors.open(image_path)
+                 accessor, extraction_params['detection_threshold'])
+
     data_image = sourcefinder_image_from_accessor(accessor,
                     margin=extraction_params['margin'],
                     radius=extraction_params['extraction_radius_pix'],
@@ -48,7 +47,7 @@ def extract_sources(image_path, extraction_params):
         deblend_nthresh=extraction_params['deblend_nthresh'],
         force_beam=extraction_params['force_beam']
     )
-    logger.info("Detected %d sources in image %s" % (len(results), image_path))
+    logger.debug("Detected %d sources in image %s" % (len(results), accessor.url))
 
     ew_sys_err = extraction_params['ew_sys_err']
     ns_sys_err = extraction_params['ns_sys_err']

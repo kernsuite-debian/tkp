@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages
-from tkp import __version__ as tkp_version
 
 install_requires = """
     astropy
@@ -10,14 +9,14 @@ install_requires = """
     python-casacore
     python-dateutil>=1.4.1
     pytz
-    pywcs>=1.12
     scipy>=0.7.0
     sqlalchemy>=1.0.0
+    alembic
+    monotonic
     """.split()
 
 extras_require = {
-    'pixelstore': ['pymongo>=3.0'],
-    'monetdb': ['python-monetdb>=11.11.11', 'sqlalchemy_monetdb>=0.9.1'],
+    'monetdb': ['sqlalchemy_monetdb>=0.9.1'],
 }
 
 tkp_scripts = [
@@ -35,15 +34,15 @@ package_data = {'tkp': [
 package_list = find_packages(where='.', exclude=['tests'])
 
 setup(
-    name = "tkp",
-    version = tkp_version,
-    packages = package_list,
-    scripts = tkp_scripts,
+    name="tkp",
+    version="4.0",
+    packages=package_list,
+    scripts=tkp_scripts,
     package_data=package_data,
-    description = "LOFAR Transients Key Project (TKP)",
-    author = "TKP Discovery WG",
-    author_email = "discovery@transientskp.org",
-    url = "http://docs.transientskp.org/",
+    description="LOFAR Transients Key Project (TKP)",
+    author="TKP Discovery WG",
+    author_email="discovery@transientskp.org",
+    url="http://docs.transientskp.org/",
     install_requires=install_requires,
     extras_require=extras_require
 )

@@ -1,7 +1,5 @@
 import logging
-import tkp.accessors
 from tkp.accessors import sourcefinder_image_from_accessor
-import tkp.accessors
 from tkp.db import general as dbgen
 from tkp.db import monitoringlist as dbmon
 from tkp.db import nulldetections as dbnd
@@ -11,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 def get_forced_fit_requests(image, expiration):
     nd_requested_fits = dbnd.get_nulldetections(image.id, expiration)
-    logger.info("Found %s null detections" % len(nd_requested_fits))
+    logger.debug("Found %s null detections" % len(nd_requested_fits))
     mon_entries = dbmon.get_monitor_entries(image.dataset.id)
 
     all_fit_positions = []
@@ -31,7 +29,6 @@ def insert_and_associate_forced_fits(image_id,successful_fits,successful_ids):
 
     nd_extractions=[]
     nd_runcats=[]
-
     ms_extractions=[]
     ms_ids = []
 
@@ -46,27 +43,25 @@ def insert_and_associate_forced_fits(image_id,successful_fits,successful_ids):
             raise ValueError("Forced fit type id not recognised:" + id[0])
 
     if nd_extractions:
-        logger.info("adding null detections")
+        logger.debug("adding null detections")
         dbgen.insert_extracted_sources(image_id, nd_extractions,
                                        extract_type='ff_nd',
                                        ff_runcat_ids=nd_runcats)
         dbnd.associate_nd(image_id)
     else:
-        logger.info("No successful nulldetection fits")
+        logger.debug("No successful nulldetection fits")
 
     if ms_extractions:
         dbgen.insert_extracted_sources(image_id, ms_extractions,
                                        extract_type='ff_ms',
                                        ff_monitor_ids=ms_ids)
-        logger.info("adding monitoring sources")
+        logger.debug("adding monitoring sources")
         dbmon.associate_ms(image_id)
     else:
-        logger.info("No successful monitor fits")
+        logger.debug("No successful monitor fits")
 
 
-
-def perform_forced_fits(fit_posns, fit_ids,
-                        image_path, extraction_params):
+def perform_forced_fits(fit_posns, fit_ids, accessor, extraction_params):
     """
     Perform forced source measurements on an image based on a list of
     positions.
@@ -83,25 +78,31 @@ def perform_forced_fits(fit_posns, fit_ids,
         NB returned lists may be shorter than input lists
         if some fits are unsuccessful.
     """
-    logger.info("Forced fitting in image: %s" % (image_path))
-    fitsimage = tkp.accessors.open(image_path)
+    logger.debug("Forced fitting in image: %s" % (accessor.url))
 
-    data_image = sourcefinder_image_from_accessor(fitsimage,
-                    margin=extraction_params['margin'],
-                    radius=extraction_params['extraction_radius_pix'],
-                    back_size_x=extraction_params['back_size_x'],
-                    back_size_y=extraction_params['back_size_y'])
+    if not len(fit_ids):
+        logging.debug("nothing to force fit")
+        return [], []
 
+    margin = extraction_params['margin']
+    radius = extraction_params['extraction_radius_pix']
+    back_size_x = extraction_params['back_size_x']
+    back_size_y = extraction_params['back_size_y']
+    data_image = sourcefinder_image_from_accessor(accessor, margin=margin,
+                                                  radius=radius,
+                                                  back_size_x=back_size_x,
+                                                  back_size_y=back_size_y)
 
-    boxsize = extraction_params['box_in_beampix'] * max(data_image.beam[0],
-                                             data_image.beam[1])
-    successful_fits, successful_ids = data_image.fit_fixed_positions(
-                                                fit_posns, boxsize, ids=fit_ids)
+    box_in_beampix = extraction_params['box_in_beampix']
+    boxsize = box_in_beampix * max(data_image.beam[0], data_image.beam[1])
+    fits = data_image.fit_fixed_positions( fit_posns, boxsize, ids=fit_ids)
+    successful_fits, successful_ids = fits
     if successful_fits:
-        serialized =[
+        serialized = [
             f.serialize(
-                extraction_params['ew_sys_err'], extraction_params['ns_sys_err'])
+                extraction_params['ew_sys_err'],
+                extraction_params['ns_sys_err'])
             for f in successful_fits]
         return serialized, successful_ids
     else:
-        return [],[]
+        return [], []
