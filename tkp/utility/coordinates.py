@@ -6,7 +6,7 @@ General purpose astronomical coordinate handling routines.
 
 import sys
 import math
-import pywcs
+from astropy import wcs as pywcs
 import logging
 import datetime
 import pytz
@@ -552,14 +552,16 @@ def gal_to_eq(lon_l, lat_b):
 
     return ra, dec
 
+
 def eq_to_cart(ra, dec):
     """Find the cartesian co-ordinates on the unit sphere given the eq. co-ords.
 
         ra, dec should be in degrees.
     """
-    return (math.cos(math.radians(dec)) * math.cos(math.radians(ra)), # Cartesian x
-            math.cos(math.radians(dec)) * math.sin(math.radians(ra)), # Cartesian y
-            math.sin(math.radians(dec))) # Cartesian z
+    return (math.cos(math.radians(dec)) * math.cos(math.radians(ra)),  # Cartesian x
+            math.cos(math.radians(dec)) * math.sin(math.radians(ra)),  # Cartesian y
+            math.sin(math.radians(dec)))  # Cartesian z
+
 
 class CoordSystem(object):
     """A container for constant strings representing different coordinate
@@ -660,13 +662,13 @@ class WCS(object):
             pixpos (list):  [x, y] pixel position
 
         Returns:
-            ra (float):     Right ascension corresponding to position [x, y]
-            dec (float):    Declination corresponding to position [x, y]
+            tuple: ra (float) Right ascension corresponding to position [x, y]
+                   dec (float) Declination corresponding to position [x, y]
         """
-        [ra], [dec] =  self.wcs.wcs_pix2sky(pixpos[0], pixpos[1], self.ORIGIN)
+        ra, dec = self.wcs.wcs_pix2world(pixpos[0], pixpos[1], self.ORIGIN)
         if math.isnan(ra) or math.isnan(dec):
             raise RuntimeError("Spatial position is not a number")
-        return ra, dec
+        return float(ra), float(dec)
 
     def s2p(self, spatialpos):
         """
@@ -676,10 +678,10 @@ class WCS(object):
             pixpos (list):  [ra, dec] spatial position
 
         Returns:
-            x (float):      X pixel value corresponding to position [ra, dec]
-            y (float):      Y pixel value corresponding to position [ra, dec]
+            tuple: X pixel value corresponding to position [ra, dec],
+                   Y pixel value corresponding to position [ra, dec]
         """
-        [x], [y] =  self.wcs.wcs_sky2pix(spatialpos[0], spatialpos[1], self.ORIGIN)
+        x, y = self.wcs.wcs_world2pix(spatialpos[0], spatialpos[1], self.ORIGIN)
         if math.isnan(x) or math.isnan(y):
             raise RuntimeError("Pixel position is not a number")
-        return x, y
+        return float(x), float(y)
