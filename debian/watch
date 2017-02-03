@@ -1,0 +1,3 @@
+version=3
+opts=filenamemangle=s/.+\/v?(\d\S+)\.tar\.gz/tkp-$1\.tar\.gz/ \
+  https://github.com/transientskp/tkp/tags .*/r?(\d\S+)\.tar\.gz
