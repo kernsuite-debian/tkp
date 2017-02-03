@@ -1,3 +1,9 @@
+tkp (4.0-1) xenial; urgency=medium
+
+  * new upstream release
+
+ -- Gijs Molenaar (launchpad ppa build key) <gijs@pythonic.nl>  Fri, 03 Feb 2017 10:14:20 +0000
+
 tkp (3.1.1-1kern1) xenial; urgency=medium
 
   * add missing python-setuptools dependency
