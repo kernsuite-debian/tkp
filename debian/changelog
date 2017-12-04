@@ -1,3 +1,9 @@
+tkp (4.0-1kern1) xenial; urgency=medium
+
+  * sign with new key
+
+ -- KERN packaging <packaging@kernsuite.info>  Mon, 04 Dec 2017 17:30:18 +0200
+
 tkp (4.0-1) xenial; urgency=medium
 
   * new upstream release
