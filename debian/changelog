@@ -1,3 +1,9 @@
+tkp (4.0.1-1kern1) bionic; urgency=medium
+
+  * New upstream version 4.0.1
+
+ -- KERN packaging <packaging@kernsuite.info>  Tue, 29 May 2018 09:53:07 +0000
+
 tkp (4.0-1kern2) bionic; urgency=medium
 
   * New upstream release for bionic
