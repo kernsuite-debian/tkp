@@ -1,3 +1,10 @@
+tkp (4.0.1-1kern2) bionic; urgency=medium
+
+  [ Gijs Molenaar ]
+  * remove wcs dependency
+
+ -- KERN packaging <packaging@kernsuite.info>  Wed, 29 Aug 2018 01:38:24 +0200
+
 tkp (4.0.1-1kern1) bionic; urgency=medium
 
   * New upstream version 4.0.1
