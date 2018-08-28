@@ -18,7 +18,6 @@ Depends: ${python:Depends}, ${misc:Depends},
  python-casacore,
  python-dateutil,
  python-tz,
- python-pywcs,
  python-scipy,
  python-sqlalchemy
 Description: A transients-discovery pipeline for astronomical image-based surveys
